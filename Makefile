@@ -14,7 +14,8 @@
 #  limitations under the License.
 
 TARGETS = scnotify rtsig pmns pmdesc pmconv isatty gettime \
-	  fammonnitor nsurldownload goodsize
+	  fammonnitor nsurldownload goodsize base64 \
+	  emp
 
 CFLAGS = -g -Wall
 COVERAGE := -fprofile-arcs -ftest-coverage
@@ -55,6 +56,12 @@ scnotify: scnotify.c
 	$(SIMPLE) -framework SystemConfiguration -framework Foundation
 
 nsurldownload: nsurldownload.m
+	$(SIMPLE) -framework Foundation
+
+base64: base64.m
+	$(SIMPLE) -DBASE64_TESTMAIN -framework Foundation
+
+emp: emp.m base64.m
 	$(SIMPLE) -framework Foundation
 
 clean:
