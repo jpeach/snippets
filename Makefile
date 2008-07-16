@@ -15,12 +15,14 @@
 
 TARGETS = scnotify rtsig pmns pmdesc pmconv isatty gettime \
 	  fammonnitor nsurldownload goodsize base64 \
-	  emp
+	  emp array_foreach
 
 CFLAGS = -g -Wall
+CXXFLAGS = -g -Wall
 COVERAGE := -fprofile-arcs -ftest-coverage
 
 SIMPLE = $(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^
+SIMPLE.CXX = $(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $^
 
 # Build a PCP program.
 PCPPROG = $(SIMPLE)-lpcp
@@ -63,6 +65,9 @@ base64: base64.m
 
 emp: emp.m base64.m
 	$(SIMPLE) -framework Foundation
+
+array_foreach: array_foreach.cpp
+	$(SIMPLE.CXX)
 
 clean:
 	rm -f $(TARGETS) *.o a.out
