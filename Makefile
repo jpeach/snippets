@@ -15,7 +15,7 @@
 
 TARGETS = scnotify rtsig pmns pmdesc pmconv isatty gettime \
 	  fammonnitor nsurldownload goodsize base64 \
-	  emp array_foreach
+	  emp array_foreach copyfile
 
 CFLAGS = -g -Wall
 CXXFLAGS = -g -Wall
@@ -68,6 +68,9 @@ emp: emp.m base64.m
 
 array_foreach: array_foreach.cpp
 	$(SIMPLE.CXX)
+
+copyfile: copyfile.c
+	$(SIMPLE)
 
 clean:
 	rm -f $(TARGETS) *.o a.out
