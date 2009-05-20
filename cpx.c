@@ -37,10 +37,18 @@
 
 #define BUFSZ getpagesize()
 
+#define SKIP_GROUP  0x0001
+#define SKIP_OWNER  0x0002
+#define SKIP_UUID   0x0004
+#define SKIP_MODE   0x0008
+#define SKIP_ACL    0x0010
+#define SKIP_GRPUUID 0x0020
+
 int
 copy_file(
 	const char * src,
-	const char * dst)
+	const char * dst,
+	unsigned flags)
 {
     int err;
     void * buf = malloc(BUFSZ);
@@ -55,6 +63,30 @@ copy_file(
 
     err = fstatx_np(srcfd, &statbuf, fsec);
     CHECK(err, "fstatx_np srcfd");
+
+    if (flags & SKIP_GROUP) {
+	filesec_set_property(fsec, FILESEC_GROUP, _FILESEC_UNSET_PROPERTY);
+    }
+
+    if (flags & SKIP_OWNER) {
+	filesec_set_property(fsec, FILESEC_OWNER, _FILESEC_UNSET_PROPERTY);
+    }
+
+    if (flags & SKIP_UUID) {
+	filesec_set_property(fsec, FILESEC_UUID, _FILESEC_UNSET_PROPERTY);
+    }
+
+    if (flags & SKIP_MODE) {
+	filesec_set_property(fsec, FILESEC_MODE, _FILESEC_UNSET_PROPERTY);
+    }
+
+    if (flags & SKIP_ACL) {
+	filesec_set_property(fsec, FILESEC_ACL, _FILESEC_UNSET_PROPERTY);
+    }
+
+    if (flags & SKIP_GRPUUID) {
+	filesec_set_property(fsec, FILESEC_GRPUUID, _FILESEC_UNSET_PROPERTY);
+    }
 
     /* In theory, kauth_acl_inherit ought to take the acl from the source and
      * copy the direct ACEs onto the ACL that is created from the parent of the
@@ -73,23 +105,39 @@ copy_file(
     return 0;
 }
 
-int main(int argc, const char ** argv)
+int main(int argc, char * const argv[])
 {
     struct stat statbuf;
     char * src, * dst;
+    unsigned flags = 0;
+    int opt;
 
-    if (argc < 3) {
-	printf("usage: cpx SRC DST\n");
+    while ((opt = getopt(argc, argv, "ogOGma")) != -1) {
+	switch (opt) {
+	    case 'o': flags |= SKIP_OWNER; break;
+	    case 'O': flags |= SKIP_UUID; break;
+	    case 'g': flags |= SKIP_GROUP; break;
+	    case 'G': flags |= SKIP_GRPUUID; break;
+	    case 'm': flags |= SKIP_MODE; break;
+	    case 'a': flags |= SKIP_ACL; break;
+	}
+    }
+
+    if (argc < 2) {
+	printf("usage: cpx [-ogmaOG] SRC DST\n");
 	return EX_USAGE;
     }
 
-    src = (char *)argv[1];
-    dst = (char *)argv[2];
+    argc -= optind;
+    argv += optind;
+
+    src = (char *)argv[0];
+    dst = (char *)argv[1];
 
     if (stat(dst, &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
 	const char * fname = strrchr(src, '/') + 1;
 	asprintf(&dst, "%s/%s", dst, fname);
     }
 
-    return copy_file(src, dst);
+    return copy_file(src, dst, flags);
 }
