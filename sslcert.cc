@@ -180,27 +180,48 @@ leaks(void)
     system(cmd);
 }
 
+static void
+extract_x509_names(BIO * bio)
+{
+    X509 * cert;
+    char * subject;
+
+    // Read the cert from the BIO.
+    cert = PEM_read_bio_X509_AUX(bio, nullptr, nullptr, nullptr);
+
+    // Copy the subject.
+    subject = x509_copy_subject_cn(cert);
+    assert(subject);
+    printf("subject: %s\n", subject);
+
+    // Extract the altSubjectNames.
+    x509_copy_subject_alt_name_cn(cert);
+    X509_free(cert);
+    free(subject);
+}
+
 int main(int argc, const char ** argv)
 {
+    BIO * b1;
+    BIO *	b2;
+
+    b1 = BIO_new_mem_buf((void *)basic_certificate, sizeof(basic_certificate));
+    b2 = BIO_new_mem_buf((void *)alt_certificate, sizeof(alt_certificate));
+
+    printf("checking basic certificate\n");
+    extract_x509_names(b1);
+
+    printf("checking altSubjectName certificate\n");
+    extract_x509_names(b2);
+
+    BIO_free(b1);
+    BIO_free(b2);
+
     for (int i = 1; i < argc; ++i) {
 	   printf("checking %s\n", argv[i]);
 
 	   scoped_file_bio bio(BIO_new_file(argv[i], "r"));
-	   X509 * cert;
-	   char * subject;
-
-	   // Read the cert from the BIO.
-	   cert = PEM_read_bio_X509_AUX(bio.bio, nullptr, nullptr, nullptr);
-
-	   // Copy the subject.
-	   subject = x509_copy_subject_cn(cert);
-	   assert(subject);
-
-	   // Extract the altSubjectNames.
-	   x509_copy_subject_alt_name_cn(cert);
-	   printf("subject: %s\n", subject);
-	   X509_free(cert);
-	   free(subject);
+	   extract_x509_names(bio.bio);
     }
 
     leaks();
