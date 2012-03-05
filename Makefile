@@ -17,8 +17,9 @@ TARGETS = scnotify rtsig pmns pmdesc pmconv isatty gettime \
 	  fammonnitor nsurldownload goodsize base64 \
 	  emp array_foreach copyfile cpx
 
+CXX := clang++
 CFLAGS = -g -Wall
-CXXFLAGS = -g -Wall
+CXXFLAGS = -std=c++0x -g -Wall
 COVERAGE := -fprofile-arcs -ftest-coverage
 
 SIMPLE = $(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^
@@ -31,6 +32,10 @@ PCPPROG = $(SIMPLE)-lpcp
 RTPROG = $(SIMPLE) -lrt
 
 all: $(TARGETS)
+
+sslcert: sslcert.cc
+	$(CXX) $(CXXFLAGS) -I/usr/local/ssl/include -L/usr/local/ssl/lib -O0 \
+		     -o $@ $^ -lcrypto
 
 pmns: pmns.c
 	$(PCPPROG)
