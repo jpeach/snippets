@@ -1,0 +1,79 @@
+#! /usr/bin/env bash
+# Copyright 2012 James Peach
+
+# make-ssl-certificate: Simple-minded self-signed SSL certificato generator.
+#
+# Usage: make-ssl-certificate DNS [DNS...]
+# Generate a self-signed SSL certificate and signing key pair. The certificate
+# will be valid for all the names given as arguments.
+
+set -e # exit on error
+
+OPENSSL=${OPENSSL:-/opt/local/bin/openssl}
+TMPDIR=${TMPDIR:-/tmp}
+
+cleanup()
+{
+    rm -f $KEYFILE
+    rm -f $CSRFILE
+    rm -f $ALTCONF
+}
+
+format()
+{
+    $OPENSSL x509 -noout -text -in "$1"
+}
+
+altnames()
+{
+    local names=""
+
+    while [ $# -gt 0 ]; do
+        if [ -z "$names" ]; then
+            names="subjectAltName=DNS:$1"
+        else
+            names="$names,DNS:$1"
+        fi
+        shift
+    done
+
+    echo $names
+}
+
+DNSNAME=$1
+
+KEYFILE=${KEYFILE:-$TMPDIR/$DNSNAME.key}
+CSRFILE=${CSRFILE:-$TMPDIR/$DNSNAME.csr}
+CERTFILE=${CERTFILE:-$DNSNAME.crt}
+ALTCONF=$(mktemp -t $DNSNAME.XXXXXX)
+
+SUBJECT=${SUBJECT:-"/CN=$DNSNAME"}
+ALTNAMES=${ALTNAMES:-$(altnames "$@")}
+
+trap "rm -f $CERTFILE" 1 2 3 5 6 9 13 14 15
+trap cleanup 0 1 2 3 5 6 9 13 14 15
+
+# Make a signing key.
+$OPENSSL genrsa -out $KEYFILE 1024
+
+# Make a signing request.
+$OPENSSL req -new \
+    -subj $SUBJECT \
+    -key $KEYFILE -out $CSRFILE
+
+echo "$ALTNAMES" > $ALTCONF
+
+# Sign a certificate.
+$OPENSSL x509 -req \
+    -days 1024 \
+    -in $CSRFILE \
+    -signkey $KEYFILE \
+    -extfile $ALTCONF \
+    -out $CERTFILE
+
+# Stash the key with the certificate. It's easier to keep them together.
+cat $KEYFILE >> $CERTFILE
+
+format $CERTFILE
+
+# vim: set ts=4 sw=4 tw=79 et :
