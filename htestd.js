@@ -99,6 +99,21 @@ function send_timeout_response(response, path) {
     }
 }
 
+// Respond with the a truncated HTTP response body.
+function send_truncated_response(response, path) {
+    response.chunkedEncoding = false;
+    response.shouldKeepAlive = false;
+
+    response.writeHead(200, {
+        'Content-Type': 'text/plain',
+        'Content-Length': '10'
+    });
+    response.write('truncate');
+
+    // At this point we have sent 8 of 10 promised bytes. Leave the client hanging ...
+    response.end();
+}
+
 // Respond with the requested HTTP status.
 function send_status_response(response, path) {
     var status;
@@ -117,6 +132,7 @@ function send_status_response(response, path) {
 
 var routes = {
     'timeout': send_timeout_response,
+    'truncate': send_truncated_response,
     'status': send_status_response,
 };
 
