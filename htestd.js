@@ -11,7 +11,7 @@ var url = require ('url');
 var console = require ('console');
 var util = require ('util');
 
-// Various utiltiy shorthands ...
+// Various utility shorthands ...
 var info = console.info;
 var fmt = util.format;
 
@@ -25,6 +25,25 @@ function send_response(response, status, body) {
     response.writeHead(status, {
         'Content-Length': body.length,
         'Content-Type': 'text/plain'
+    });
+    response.write(body);
+    response.end();
+}
+
+
+// Send a cacheable response
+//
+// Examples:
+//  /cacheable
+//  /cacheable/anything/you/like
+function send_cacheable_response(response, path) {
+    var status = 200;
+    var body = http.STATUS_CODES[status] + "\n";
+
+    response.writeHead(status, {
+        //'Content-Length' : body.length,
+        'Content-Type': 'text/plain',
+        'Cache-Control': 'public,max-age=6000'
     });
     response.write(body);
     response.end();
@@ -106,12 +125,14 @@ function send_truncated_response(response, path) {
 
     response.writeHead(200, {
         'Content-Type': 'text/plain',
-        'Content-Length': '10'
+        'Content-Length': '100'
     });
-    response.write('truncate');
 
-    // At this point we have sent 8 of 10 promised bytes. Leave the client hanging ...
-    response.end();
+    response.write('body pending ...\n');
+    return setTimeout(function() {
+        response.write('or not\n');
+        response.end();
+    }, 1000);
 }
 
 // Respond with the requested HTTP status.
@@ -130,10 +151,26 @@ function send_status_response(response, path) {
     return send_response(response, status, fmt('you asked for a %d response\n', status));
 }
 
+// Respond with a JSON body containing the request headers.
+//
+// Examples:
+//  /headers
+//  /headers/anything you like
+function send_headers_response(request, response, path) {
+    response.writeHead(200, {
+        'Content-Type': 'application/json'
+    });
+    response.write(JSON.stringify(request.headers));
+    response.write('\n');
+    response.end();
+}
+
 var routes = {
     'timeout': send_timeout_response,
     'truncate': send_truncated_response,
     'status': send_status_response,
+    'cacheable': send_cacheable_response,
+    'headers': send_headers_response,
 };
 
 var server = http.createServer(function (request, response) {
@@ -163,7 +200,7 @@ var server = http.createServer(function (request, response) {
             // We have a handler for the partial path, but there's more of the
             // path to consume. For example, the timeout handler take care or
             // URLs like /timeout/ms/100
-            return current(response, components.slice(i, components.length));
+            return current(request, response, components.slice(i, components.length));
 
         } else {
             return send_response(response, 404);
@@ -171,7 +208,7 @@ var server = http.createServer(function (request, response) {
     }
 
     if (typeof(current) === typeof(Function)) {
-        return current(response);
+        return current(request, response, u.pathname.split("/"));
     }
 
     return send_response(response, 404);
