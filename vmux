@@ -1,0 +1,40 @@
+#! /usr/bin/env bash
+
+# Run or attach to tmux in a vagant shell
+do_vagrant()
+{
+    if [ -z "$VMUX_BOX" ]; then
+        TITLE="vagrant $(basename $VMUX_ROOT)"
+    else
+        TITLE="vagrant $(basename $VMUX_ROOT)\($VMUX_BOX\)"
+    fi
+
+    cd $VMUX_ROOT
+    echo -n -e "\\033]0;$TITLE\\007"
+    exec vagrant ssh $VMUX_BOX -- -t "tmux attach || tmux new"
+
+}
+
+# Start a new Terminal windo that executes vmux recursively.
+do_terminal()
+{
+    ROOT=$(pwd)
+    exec osascript <<EOF
+tell application "Terminal"
+    do script "env VMUX_2=Y VMUX_ROOT=$ROOT VMUX_BOX=$VBOX $0"
+end tell
+EOF
+
+}
+
+if [ "$VMUX_2" ] ; then
+    do_vagrant
+else
+    case $# in
+        0) ;;
+        1) VBOX="$1"; shift ;;
+        *) echo "Usage: vmux [VAGRANT BOX]"; exit 2;;
+    esac
+
+    do_terminal
+fi

@@ -30,13 +30,46 @@ function send_response(response, status, body) {
     response.end();
 }
 
+// Close the socket without sending a response (with an optional timeout).
+//
+// Syntax:
+//
+// [UNITS/TIME]
+//
+// UNITS:
+//      's', 'sec' -> seconds
+//      'ms', 'msec' -> milliseconds
+function send_no_response(request, response, path) {
+    var ms = 0;
+    var now = new Date().getTime();
+
+    if (path.length == 2) {
+        switch (path[0]) {
+            case 's':
+            case 'sec':
+                ms = path[1] * 1000;
+                break;
+            case 'ms':
+            case 'msec':
+                ms = path[1];
+                break;
+            default:
+                return send_response(response, 400, fmt('unsupported time unit \'%s\'\n', path[0]));
+        }
+    }
+
+    return setTimeout(function() {
+        var elapsed = new Date().getTime() - now;
+        request.socket.destroy();
+    }, ms);
+}
 
 // Send a cacheable response
 //
 // Examples:
 //  /cacheable
 //  /cacheable/anything/you/like
-function send_cacheable_response(response, path) {
+function send_cacheable_response(request, response, path) {
     var status = 200;
     var body = http.STATUS_CODES[status] + "\n";
 
@@ -66,7 +99,7 @@ function send_cacheable_response(response, path) {
 // Examples:
 //  /timeout/s/10
 //  /timeout/msec/500/body
-function send_timeout_response(response, path) {
+function send_timeout_response(request, response, path) {
     var ms;
     var how;
     var now = new Date().getTime();
@@ -119,7 +152,7 @@ function send_timeout_response(response, path) {
 }
 
 // Respond with the a truncated HTTP response body.
-function send_truncated_response(response, path) {
+function send_truncated_response(request, response, path) {
     response.chunkedEncoding = false;
     response.shouldKeepAlive = false;
 
@@ -171,6 +204,7 @@ var routes = {
     'status': send_status_response,
     'cacheable': send_cacheable_response,
     'headers': send_headers_response,
+    'abort': send_no_response,
 };
 
 var server = http.createServer(function (request, response) {

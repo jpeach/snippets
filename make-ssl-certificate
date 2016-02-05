@@ -9,7 +9,7 @@
 
 set -e # exit on error
 
-OPENSSL=${OPENSSL:-/opt/local/bin/openssl}
+OPENSSL=${OPENSSL:-openssl}
 TMPDIR=${TMPDIR:-/tmp}
 
 cleanup()
@@ -74,6 +74,6 @@ $OPENSSL x509 -req \
 # Stash the key with the certificate. It's easier to keep them together.
 cat $KEYFILE >> $CERTFILE
 
-format $CERTFILE
+format $CERTFILE | tee -a $CERTFILE
 
 # vim: set ts=4 sw=4 tw=79 et :
