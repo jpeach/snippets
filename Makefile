@@ -83,6 +83,9 @@ cpx: cpx.c
 aio: aio.c
 	$(SIMPLE) -laio
 
+pquota: pquota.cc
+	$(SIMPLE.CXX) -lblkid
+
 clean:
 	rm -f $(TARGETS) *.o a.out
 	rm -rf *.dSYM
