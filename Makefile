@@ -86,6 +86,9 @@ aio: aio.c
 pquota: pquota.cc
 	$(SIMPLE.CXX) -lblkid
 
+fts: fts.c
+	$(SIMPLE)
+
 clean:
 	rm -f $(TARGETS) *.o a.out
 	rm -rf *.dSYM
