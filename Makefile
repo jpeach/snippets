@@ -15,7 +15,8 @@
 
 TARGETS = scnotify rtsig pmns pmdesc pmconv isatty gettime \
 	  fammonnitor nsurldownload goodsize base64 \
-	  emp array_foreach copyfile cpx aio dio
+	  emp array_foreach copyfile cpx aio dio \
+	  re2sz
 
 CXX := clang++
 CFLAGS = -g -Wall
@@ -91,6 +92,9 @@ fts: fts.c
 
 dio: dio.c
 	$(SIMPLE)
+
+re2sz: re2sz.cc
+	$(SIMPLE.CXX) -lre2
 
 clean:
 	rm -f $(TARGETS) *.o a.out
